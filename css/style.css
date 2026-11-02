@@ -1,0 +1,128 @@
+/* Custom Stylesheet for PustakaHub Digital Library */
+
+:root {
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --secondary: #475569;
+  --accent: #f59e0b;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+.dark ::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Book Card Hover Effect */
+.book-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.book-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+.book-cover-img {
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+.book-card:hover .book-cover-img {
+  transform: scale(1.04);
+}
+
+/* Glassmorphism Classes */
+.glass {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.dark .glass {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Modal Animations */
+.modal-backdrop {
+  animation: fadeIn 0.2s ease-out forwards;
+}
+.modal-content {
+  animation: scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Toast Notifications */
+#toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.toast {
+  animation: slideInRight 0.3s ease forwards;
+  min-width: 280px;
+  max-width: 380px;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Receipt Print Styling */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #receipt-print-area, #receipt-print-area * {
+    visibility: visible;
+  }
+  #receipt-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+}

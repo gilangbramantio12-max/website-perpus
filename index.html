@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PustakaHub - Sistem Informasi Perpustakaan Digital</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              900: '#1e3a8a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/style.css" />
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-200">
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container"></div>
+
+  <!-- Navbar -->
+  <header class="sticky top-0 z-40 glass border-b border-slate-200/80 dark:border-slate-800/80 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      
+      <!-- Brand Logo -->
+      <div class="flex items-center gap-3 cursor-pointer" onclick="setRole('user'); resetFilters();">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-700 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+          <i class="fas fa-book-open-reader text-lg"></i>
+        </div>
+        <div>
+          <span class="font-extrabold text-lg sm:text-xl tracking-tight bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">PustakaHub</span>
+          <span class="hidden sm:inline-block ml-1.5 px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300">Digital Library</span>
+        </div>
+      </div>
+
+      <!-- Role Switcher (User vs Admin) -->
+      <div class="flex items-center bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
+        <button id="role-user-btn" onclick="setRole('user')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-sm transition">
+          <i class="fas fa-user text-xs mr-1"></i> Katalog
+        </button>
+        <button id="role-admin-btn" onclick="setRole('admin')" class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition">
+          <i class="fas fa-shield-halved text-xs mr-1"></i> Pustakawan
+        </button>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-2">
+        <!-- Buku Saya (Active Loans) -->
+        <button 
+          onclick="openActiveLoansModal()" 
+          class="relative p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+          title="Buku Saya / Peminjaman Aktif">
+          <i class="fas fa-book-bookmark text-sm"></i>
+          <span id="loan-badge" class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-rose-500 text-white text-[10px] font-bold hidden items-center justify-center shadow-sm">
+            0
+          </span>
+        </button>
+
+        <!-- Theme Toggle -->
+        <button 
+          onclick="toggleTheme()" 
+          class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+          title="Ubah Tema Gelap/Terang">
+          <i id="theme-toggle-icon" class="fas fa-moon text-sm"></i>
+        </button>
+
+        <!-- Reset Data -->
+        <button 
+          onclick="resetAllData()" 
+          class="hidden sm:flex p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+          title="Reset Data ke Default">
+          <i class="fas fa-rotate text-sm"></i>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ==================== USER CATALOG VIEW ==================== -->
+  <main id="catalog-view" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    
+    <!-- Hero Banner & Search Section -->
+    <section class="relative rounded-3xl overflow-hidden bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 text-white p-6 sm:p-10 shadow-xl">
+      <div class="relative z-10 max-w-2xl">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/20 backdrop-blur-md mb-4 text-blue-100">
+          <i class="fas fa-sparkles text-amber-300"></i> Sistem Otomasi Perpustakaan Pintar
+        </span>
+        <h1 class="text-2xl sm:text-4xl font-extrabold tracking-tight leading-tight">
+          Temukan & Pinjam Ribuan Koleksi Buku Terbaik
+        </h1>
+        <p class="mt-2 text-sm sm:text-base text-blue-100/90 leading-relaxed">
+          Akses katalog terintegrasi, cek ketersediaan fisik buku secara real-time, dan lakukan peminjaman mandiri dengan cepat.
+        </p>
+
+        <!-- Search Bar -->
+        <div class="mt-6 flex flex-col sm:flex-row items-center gap-2 bg-white dark:bg-slate-900 p-2 rounded-2xl shadow-2xl border border-white/20">
+          <div class="flex items-center gap-3 w-full px-3 text-slate-400">
+            <i class="fas fa-magnifying-glass text-lg text-blue-600"></i>
+            <input 
+              id="search-input"
+              type="text" 
+              placeholder="Cari berdasarkan judul, penulis, ISBN, atau topik buku..." 
+              class="w-full bg-transparent border-none outline-none text-slate-800 dark:text-slate-100 text-sm placeholder:text-slate-400 py-1.5"
+            />
+          </div>
+          <button 
+            onclick="renderBooks()" 
+            class="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-md transition whitespace-nowrap">
+            Cari Buku
+          </button>
+        </div>
+      </div>
+
+      <!-- Decorative Background Glow -->
+      <div class="absolute -right-10 -bottom-10 w-96 h-96 bg-indigo-500/30 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -left-10 -top-10 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl pointer-events-none"></div>
+    </section>
+
+    <!-- Filters & Sorting Bar -->
+    <section class="space-y-4">
+      
+      <!-- Category Pills -->
+      <div class="flex items-center justify-between gap-4">
+        <div id="category-pills" class="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Secondary Filters & Stats -->
+      <div class="flex flex-wrap items-center justify-between gap-4 pt-2 border-t border-slate-200/80 dark:border-slate-800/80 text-xs sm:text-sm">
+        
+        <div class="flex items-center gap-2">
+          <span class="text-slate-500 dark:text-slate-400">Koleksi:</span>
+          <span id="book-count-badge" class="font-bold px-2.5 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
+            0 Buku
+          </span>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <!-- Availability Filter -->
+          <div class="flex items-center gap-1.5">
+            <span class="text-slate-500 dark:text-slate-400 text-xs">Status:</span>
+            <select id="availability-filter" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="all">Semua Status</option>
+              <option value="available">Hanya Tersedia</option>
+              <option value="unavailable">Sedang Dipinjam</option>
+            </select>
+          </div>
+
+          <!-- Sort Select -->
+          <div class="flex items-center gap-1.5">
+            <span class="text-slate-500 dark:text-slate-400 text-xs">Urutkan:</span>
+            <select id="sort-select" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="popular">Terpopuler</option>
+              <option value="title">Judul (A-Z)</option>
+              <option value="year">Tahun Terbaru</option>
+              <option value="rating">Rating Tertinggi</option>
+            </select>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- Books Grid -->
+    <section>
+      <div id="books-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <!-- Rendered by JS -->
+      </div>
+    </section>
+
+  </main>
+
+
+  <!-- ==================== ADMIN / LIBRARIAN VIEW ==================== -->
+  <main id="admin-view" class="hidden flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    
+    <!-- Admin Header -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
+      <div>
+        <h2 class="text-2xl font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+          <i class="fas fa-layer-group text-blue-600"></i> Dashboard Pengelola Perpustakaan
+        </h2>
+        <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+          Pantau sirkulasi peminjaman, manajemen persediaan buku fisik, denda, dan ekspor data laporan.
+        </p>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <button onclick="exportDataJSON()" class="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition flex items-center gap-2">
+          <i class="fas fa-file-code text-blue-500"></i> Backup JSON
+        </button>
+        <button onclick="exportCirculationCSV()" class="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition flex items-center gap-2">
+          <i class="fas fa-file-csv text-emerald-500"></i> Ekspor CSV
+        </button>
+        <button onclick="openAddBookModal()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition flex items-center gap-2">
+          <i class="fas fa-plus"></i> Tambah Buku Baru
+        </button>
+      </div>
+    </div>
+
+    <!-- Stat Cards -->
+    <section class="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+        <span class="text-xs text-slate-400 block font-medium">Judul Buku</span>
+        <h3 id="stat-total-titles" class="text-2xl font-extrabold text-slate-900 dark:text-slate-100 mt-1">0</h3>
+        <span class="text-[10px] text-blue-500 font-medium mt-1 inline-block">Katalog Aktif</span>
+      </div>
+
+      <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+        <span class="text-xs text-slate-400 block font-medium">Total Eksemplar</span>
+        <h3 id="stat-total-exemplars" class="text-2xl font-extrabold text-slate-900 dark:text-slate-100 mt-1">0</h3>
+        <span class="text-[10px] text-indigo-500 font-medium mt-1 inline-block">Fisik di Perpustakaan</span>
+      </div>
+
+      <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+        <span class="text-xs text-slate-400 block font-medium">Buku Dipinjam</span>
+        <h3 id="stat-active-loans" class="text-2xl font-extrabold text-amber-500 mt-1">0</h3>
+        <span class="text-[10px] text-amber-500 font-medium mt-1 inline-block">Sirkulasi Aktif</span>
+      </div>
+
+      <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+        <span class="text-xs text-slate-400 block font-medium">Pengembalian</span>
+        <h3 id="stat-completed-loans" class="text-2xl font-extrabold text-emerald-500 mt-1">0</h3>
+        <span class="text-[10px] text-emerald-500 font-medium mt-1 inline-block">Transaksi Selesai</span>
+      </div>
+
+      <div class="col-span-2 md:col-span-1 p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+        <span class="text-xs text-slate-400 block font-medium">Total Denda</span>
+        <h3 id="stat-total-fine" class="text-xl font-extrabold text-rose-500 mt-1 truncate">Rp 0</h3>
+        <span class="text-[10px] text-rose-500 font-medium mt-1 inline-block">Keterlambatan</span>
+      </div>
+    </section>
+
+    <!-- Table 1: Manajemen Buku Fisik -->
+    <section class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-xs space-y-4">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h3 class="font-bold text-base text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <i class="fas fa-book text-blue-500"></i> Katalog Koleksi Buku
+          </h3>
+          <p class="text-xs text-slate-400 mt-0.5">Edit stok fisik, ubah informasi buku, dan penempatan rak.</p>
+        </div>
+
+        <div class="w-full sm:w-64">
+          <input 
+            id="admin-book-search" 
+            type="text" 
+            placeholder="Cari buku di tabel..." 
+            class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              <th class="py-3 px-4">No</th>
+              <th class="py-3 px-4">Buku & ISBN</th>
+              <th class="py-3 px-4">Penulis & Kategori</th>
+              <th class="py-3 px-4">Ketersediaan</th>
+              <th class="py-3 px-4">Rak</th>
+              <th class="py-3 px-4 text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="admin-books-tbody" class="divide-y divide-slate-100 dark:divide-slate-800/60">
+            <!-- Rendered by JS -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Table 2: Sirkulasi Peminjaman -->
+    <section class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-xs space-y-4">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h3 class="font-bold text-base text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <i class="fas fa-repeat text-indigo-500"></i> Sirkulasi Transaksi Peminjaman
+          </h3>
+          <p class="text-xs text-slate-400 mt-0.5">Daftar lengkap transaksi sirkulasi dan status pengembalian.</p>
+        </div>
+
+        <div>
+          <select id="admin-loan-filter-status" class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 outline-none">
+            <option value="all">Semua Sirkulasi</option>
+            <option value="active">Sedang Dipinjam (Aktif)</option>
+            <option value="overdue">Terlambat</option>
+            <option value="returned">Sudah Selesai (Dikembalikan)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              <th class="py-3 px-4">ID Transaksi</th>
+              <th class="py-3 px-4">Peminjam</th>
+              <th class="py-3 px-4">Judul Buku</th>
+              <th class="py-3 px-4">Periode Pinjam</th>
+              <th class="py-3 px-4">Status</th>
+              <th class="py-3 px-4">Denda</th>
+              <th class="py-3 px-4 text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="admin-loans-tbody" class="divide-y divide-slate-100 dark:divide-slate-800/60">
+            <!-- Rendered by JS -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="mt-auto border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-6 text-center text-xs text-slate-500 dark:text-slate-400">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <i class="fas fa-book-open text-blue-600"></i>
+        <span class="font-bold text-slate-700 dark:text-slate-200">PustakaHub</span> &copy; 2026. Sistem Perpustakaan Digital Terintegrasi.
+      </div>
+      <div class="flex items-center gap-4 text-slate-400 text-xs">
+        <span>Ready for Vercel & Netlify Hosting</span>
+        <span>•</span>
+        <span>Local Database Persisted</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ==================== MODALS ==================== -->
+
+  <!-- 1. Book Detail Modal -->
+  <div id="book-detail-modal" class="modal-backdrop fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="modal-content bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-200 dark:border-slate-800 max-h-[90vh] overflow-y-auto">
+      <div id="book-detail-content">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Borrow Form Modal -->
+  <div id="borrow-modal" class="modal-backdrop fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="modal-content bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
+        <h3 class="font-bold text-base text-slate-900 dark:text-slate-100 flex items-center gap-2">
+          <i class="fas fa-hand-holding-hand text-blue-600"></i> Form Formulir Peminjaman Buku
+        </h3>
+        <button onclick="closeModal('borrow-modal')" class="text-slate-400 hover:text-slate-600">
+          <i class="fas fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div id="borrow-book-preview" class="my-4">
+        <!-- Book thumbnail preview -->
+      </div>
+
+      <form id="borrow-form" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Nama Lengkap Peminjam *</label>
+          <input 
+            id="borrower-name" 
+            type="text" 
+            required 
+            placeholder="Contoh: Muhammad Rizky" 
+            class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">NIM / NIS / No. ID *</label>
+            <input 
+              id="borrower-id" 
+              type="text" 
+              required 
+              placeholder="Contoh: 20240105" 
+              class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">No. WhatsApp / HP</label>
+            <input 
+              id="borrower-phone" 
+              type="tel" 
+              placeholder="0812xxxxxxxx" 
+              class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Durasi Peminjaman</label>
+          <select id="borrow-duration" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="3">3 Hari</option>
+            <option value="7" selected>7 Hari (Standar)</option>
+            <option value="14">14 Hari (2 Minggu)</option>
+          </select>
+        </div>
+
+        <div class="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 text-xs">
+          <div class="flex items-center justify-between text-blue-700 dark:text-blue-300 font-medium">
+            <span>Estimasi Batas Pengembalian:</span>
+            <span id="estimated-due-date" class="font-bold">-</span>
+          </div>
+          <span class="text-[10px] text-blue-600/80 dark:text-blue-400/80 mt-1 block">Denda keterlambatan: Rp 1.000 / hari jika terlambat.</span>
+        </div>
+
+        <div class="pt-2 flex gap-3">
+          <button type="button" onclick="closeModal('borrow-modal')" class="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            Batal
+          </button>
+          <button type="submit" class="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition">
+            Konfirmasi Peminjaman
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. Receipt / Bukti Peminjaman Modal -->
+  <div id="receipt-modal" class="modal-backdrop fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="modal-content bg-white dark:bg-slate-900 w-full max-w-sm rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
+      <div id="receipt-content">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Active Loans (Buku Saya) Modal -->
+  <div id="active-loans-modal" class="modal-backdrop fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="modal-content bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 max-h-[85vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
+        <div>
+          <h3 class="font-bold text-base text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <i class="fas fa-book-bookmark text-blue-600"></i> Buku Sedang Dipinjam
+          </h3>
+          <p class="text-xs text-slate-400 mt-0.5">Daftar buku yang aktif dipinjam dan belum dikembalikan.</p>
+        </div>
+        <button onclick="closeModal('active-loans-modal')" class="text-slate-400 hover:text-slate-600">
+          <i class="fas fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div id="active-loans-list" class="my-4 space-y-3">
+        <!-- Populated by JS -->
+      </div>
+
+      <div class="pt-3 border-t border-slate-200 dark:border-slate-800 text-right">
+        <button onclick="closeModal('active-loans-modal')" class="px-5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-200">
+          Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Add / Edit Book Modal (Admin) -->
+  <div id="book-form-modal" class="modal-backdrop fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="modal-content bg-white dark:bg-slate-900 w-full max-w-xl rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
+        <h3 id="book-modal-title" class="font-bold text-base text-slate-900 dark:text-slate-100">
+          Tambah Buku Baru
+        </h3>
+        <button onclick="closeModal('book-form-modal')" class="text-slate-400 hover:text-slate-600">
+          <i class="fas fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form id="book-form" class="my-4 space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Judul Buku *</label>
+          <input id="book-title-input" type="text" required placeholder="Judul lengkap buku" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Penulis *</label>
+            <input id="book-author-input" type="text" required placeholder="Nama penulis" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Kategori</label>
+            <select id="book-category-input" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none">
+              <!-- JS Populated -->
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">ISBN *</label>
+            <input id="book-isbn-input" type="text" required placeholder="978-xxxxxxx" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none font-mono">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Penerbit</label>
+            <input id="book-publisher-input" type="text" placeholder="Nama penerbit" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Tahun Terbit</label>
+            <input id="book-year-input" type="number" value="2024" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Halaman</label>
+            <input id="book-pages-input" type="number" value="300" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Jumlah Stok Fisik *</label>
+            <input id="book-stock-input" type="number" min="1" value="3" required class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Lokasi Rak</label>
+            <input id="book-rack-input" type="text" placeholder="Contoh: Rak TK-01" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">URL Cover Gambar</label>
+            <input id="book-cover-input" type="url" placeholder="https://..." class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Sinopsis Ringkas</label>
+          <textarea id="book-synopsis-input" rows="3" placeholder="Deskripsi ringkas mengenai isi buku..." class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none"></textarea>
+        </div>
+
+        <div class="pt-3 flex gap-3">
+          <button type="button" onclick="closeModal('book-form-modal')" class="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-400">
+            Batal
+          </button>
+          <button type="submit" class="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20">
+            Simpan Buku
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

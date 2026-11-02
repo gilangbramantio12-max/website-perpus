@@ -1,0 +1,19 @@
+{
+  "name": "pustakahub-digital-library",
+  "version": "1.0.0",
+  "description": "Sistem Informasi Perpustakaan Digital Modern dan Terintegrasi",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "serve": "node server.js"
+  },
+  "keywords": [
+    "library",
+    "perpustakaan",
+    "digital-library",
+    "opac",
+    "peminjaman-buku"
+  ],
+  "author": "PustakaHub",
+  "license": "MIT"
+}
