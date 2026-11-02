@@ -278,8 +278,12 @@ function handleSaveBook(e) {
       showToast("Data buku berhasil diperbarui!", "success");
     }
   } else {
-    // Add new book
-    const newId = `BOK-${String(AppState.books.length + 1).padStart(3, "0")}`;
+    // Add new book (ID unik otomatis berdasarkan ID tertinggi)
+    const maxIdNum = AppState.books.reduce((max, b) => {
+      const num = parseInt(String(b.id).replace("BOK-", ""), 10);
+      return !isNaN(num) && num > max ? num : max;
+    }, 0);
+    const newId = `BOK-${String(maxIdNum + 1).padStart(3, "0")}`;
     const newBook = {
       id: newId,
       title,
@@ -321,7 +325,10 @@ function deleteBook(bookId) {
   if (!confirm(warn)) return;
 
   AppState.books = AppState.books.filter(b => b.id !== bookId);
+  AppState.bookmarks = AppState.bookmarks.filter(id => id !== bookId);
   saveBooks();
+  saveBookmarks();
+  updateBookmarkBadge();
 
   renderAdminStats();
   renderAdminBooksTable();

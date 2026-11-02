@@ -53,6 +53,9 @@ function initStorage() {
   const storedBookmarks = localStorage.getItem(STORAGE_KEYS.BOOKMARKS);
   AppState.bookmarks = storedBookmarks ? JSON.parse(storedBookmarks) : [];
 
+  // Sinkronisasi status sirkulasi (terlambat / aktif)
+  syncLoanStatuses();
+
   // Theme Init
   const savedTheme = localStorage.getItem(STORAGE_KEYS.THEME);
   AppState.isDark = savedTheme === "dark" || (!savedTheme && window.matchMedia("(prefers-color-scheme: dark)").matches);
@@ -148,12 +151,23 @@ function formatDate(dateString) {
 }
 
 function calculateDaysDifference(targetDateString) {
+  if (!targetDateString) return 0;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const targetDate = new Date(targetDateString);
+  const parts = targetDateString.split("-");
+  const targetDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
   targetDate.setHours(0, 0, 0, 0);
   const diffTime = targetDate - today;
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+}
+
+function syncLoanStatuses() {
+  AppState.loans.forEach(loan => {
+    if (loan.status !== "returned") {
+      const diff = calculateDaysDifference(loan.dueDate);
+      loan.status = diff < 0 ? "overdue" : "active";
+    }
+  });
 }
 
 // Render Category Filter Pills
@@ -197,12 +211,14 @@ function getFilteredBooks() {
       book.isbn.toLowerCase().includes(q) ||
       book.synopsis.toLowerCase().includes(q);
 
-    // Availability match
+    // Availability & Favorite match
     let matchAvailability = true;
     if (AppState.availabilityFilter === "available") {
       matchAvailability = book.available > 0;
     } else if (AppState.availabilityFilter === "unavailable") {
       matchAvailability = book.available === 0;
+    } else if (AppState.availabilityFilter === "favorite") {
+      matchAvailability = AppState.bookmarks.includes(book.id);
     }
 
     return matchCategory && matchSearch && matchAvailability;
@@ -369,14 +385,32 @@ function toggleBookmark(bookId) {
   const index = AppState.bookmarks.indexOf(bookId);
   if (index > -1) {
     AppState.bookmarks.splice(index, 1);
-    showToast("Dihapus dari daftar bacaan", "info");
+    showToast("Dihapus dari daftar favorit", "info");
   } else {
     AppState.bookmarks.push(bookId);
-    showToast("Berhasil ditambahkan ke daftar bacaan", "success");
+    showToast("Berhasil ditambahkan ke daftar favorit", "success");
   }
   saveBookmarks();
   updateBookmarkBadge();
   renderBooks();
+}
+
+function filterFavorites() {
+  setRole('user');
+  const availSelect = document.getElementById("availability-filter");
+  if (availSelect) {
+    if (AppState.availabilityFilter === "favorite") {
+      // Toggle back to all if already active
+      availSelect.value = "all";
+      AppState.availabilityFilter = "all";
+      showToast("Menampilkan semua koleksi buku", "info");
+    } else {
+      availSelect.value = "favorite";
+      AppState.availabilityFilter = "favorite";
+      showToast(`Menampilkan ${AppState.bookmarks.length} buku favorit Anda`, "info");
+    }
+    renderBooks();
+  }
 }
 
 function updateBookmarkBadge() {
@@ -774,7 +808,11 @@ function returnBook(loanId) {
   showToast(`Buku "${loan.bookTitle}" berhasil dikembalikan!`, "success");
   updateLoanBadge();
   renderBooks();
-  openActiveLoansModal(); // Refresh modal view
+
+  const activeLoansModal = document.getElementById("active-loans-modal");
+  if (activeLoansModal && !activeLoansModal.classList.contains("hidden")) {
+    openActiveLoansModal(); // Refresh modal view only if currently open
+  }
   
   if (AppState.currentRole === "admin") {
     renderAdminStats();

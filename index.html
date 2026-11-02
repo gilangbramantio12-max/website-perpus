@@ -21,6 +21,10 @@
               700: '#1d4ed8',
               900: '#1e3a8a',
             }
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
           }
         }
       }
@@ -41,7 +45,7 @@
     body {
       font-family: 'Plus Jakarta Sans', sans-serif;
     }
-    font-mono {
+    .font-mono {
       font-family: 'JetBrains Mono', monospace;
     }
   </style>
@@ -78,6 +82,17 @@
 
       <!-- Action Buttons -->
       <div class="flex items-center gap-2">
+        <!-- Buku Favorit (Bookmarks) -->
+        <button 
+          onclick="filterFavorites()" 
+          class="relative p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+          title="Buku Favorit (Wishlist)">
+          <i class="fas fa-bookmark text-sm text-amber-500"></i>
+          <span id="bookmark-badge" class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-amber-500 text-white text-[10px] font-bold hidden items-center justify-center shadow-sm">
+            0
+          </span>
+        </button>
+
         <!-- Buku Saya (Active Loans) -->
         <button 
           onclick="openActiveLoansModal()" 
@@ -177,6 +192,7 @@
               <option value="all">Semua Status</option>
               <option value="available">Hanya Tersedia</option>
               <option value="unavailable">Sedang Dipinjam</option>
+              <option value="favorite">Favorit Saya</option>
             </select>
           </div>
 
